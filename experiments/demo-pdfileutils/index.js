@@ -218,10 +218,17 @@ class PatchRenderer extends AbstractRenderer {
   }
 }
 
-var data = pdfu.parse('#N canvas 778 17 450 300 10;\n#X obj 14 13 loadbang;\n#X obj 14 64 print bla;\n#X connect 0 0 1 0;')
-var patch = new pdfu.Patch(data)
+var patch = new pdfu.Patch({nodes: [], connections: []})
 patch.guessPortlets()
 
 var containerEl = document.createElement('div')
 document.body.appendChild(containerEl)
 ReactDOM.render(<PatchRenderer patch={patch} />, containerEl)
+
+// async test
+setTimeout(function() {
+  var data = pdfu.parse('#N canvas 778 17 450 300 10;\n#X obj 14 13 loadbang;\n#X obj 14 64 print bla;\n#X connect 0 0 1 0;')
+  var patch = new pdfu.Patch(data)
+  patch.guessPortlets()
+  ReactDOM.render(<PatchRenderer patch={patch} />, containerEl)
+}, 1)
