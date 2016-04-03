@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import pdfu from 'pd-fileutils'
 
-class NodeRenderer extends React.Component {
+class AbstractRenderer extends React.Component {
   opts = {
     portletWidth: 5,
     portletHeight: 3.5,
@@ -15,7 +15,9 @@ class NodeRenderer extends React.Component {
     textPadding: 6,
     svgFile: true
   }
+}
 
+class NodeRenderer extends AbstractRenderer {
   get node() {
     return this.props.node
   }
@@ -72,7 +74,7 @@ class NodeRenderer extends React.Component {
 
 class ObjectRenderer extends NodeRenderer {
   render() {
-    var boxStyle = {
+    const boxStyle = {
       stroke: 'black',
       fill: 'white'
     }
@@ -93,7 +95,7 @@ class ObjectRenderer extends NodeRenderer {
     return this.opts.objMinHeight
   }
   getW() {
-    var maxPortlet = Math.max(this.node.inlets, this.node.outlets)
+    const maxPortlet = Math.max(this.node.inlets, this.node.outlets)
       , textLength = this.getText().length * this.opts.glyphWidth + this.opts.textPadding * 2
 
     return Math.max((maxPortlet-1) * this.opts.objMinWidth, this.opts.objMinWidth, textLength)
@@ -121,29 +123,29 @@ class ObjectRenderer extends NodeRenderer {
   getInletRelY(inlet) { return 0 }
 
   _genericPortletRelX(inOrOutlets, portlet) {
-    var width = this.getW()
+    const width = this.getW()
       , n = this.node[inOrOutlets]
     if (portlet === 0) return 0;
     else if (portlet === n-1) return width - this.opts.portletWidth
     else {
       // Space between portlets
-      var a = (width - n*this.opts.portletWidth) / (n-1)
+      const a = (width - n*this.opts.portletWidth) / (n-1)
       return portlet * (this.opts.portletWidth + a)
     }
   }
 
   _genericRenderPortlets(portletType) {
-    var portletTypeCap = portletType.substr(0, 1).toUpperCase() + portletType.substr(1)
+    const portletTypeCap = portletType.substr(0, 1).toUpperCase() + portletType.substr(1)
       , self = this
 
-    var numPortlets = this.node[portletType+'s']
-    var portlets = Array.from(Array(this.node[portletType+'s']).keys())
+    const numPortlets = this.node[portletType+'s']
+    const portlets = Array.from(Array(this.node[portletType+'s']).keys())
 
     return (
       <g>
         {portlets.map(i => {
-          var x = self['get' + portletTypeCap + 'RelX'](i)
-          var y = self['get' + portletTypeCap + 'RelY'](i)
+          const x = self['get' + portletTypeCap + 'RelX'](i)
+          const y = self['get' + portletTypeCap + 'RelY'](i)
 
           return (
             <rect className={[portletType, "portlet"].join(' ')}
@@ -159,7 +161,39 @@ class ObjectRenderer extends NodeRenderer {
   }
 }
 
-class PatchRenderer extends React.Component {
+class ConnectionRenderer extends AbstractRenderer {
+  render() {
+    const lineStyle = {
+      stroke: 'black',
+      strokeWidth: '2px'
+    }
+    const { patch } = this.props
+    const conn = this.props.connection
+
+    // HACK
+    const sourceRenderer = new ObjectRenderer({ node: patch.getNode(conn.source.id) })
+    const sinkRenderer = new ObjectRenderer({ node: patch.getNode(conn.sink.id) })
+
+    var x1 = sourceRenderer.getOutletX(conn.source.port) + this.opts.portletWidth/2
+    var y1 = sourceRenderer.getOutletY(conn.source.port) + this.opts.portletHeight
+
+    var x2 = sinkRenderer.getInletX(conn.sink.port) + this.opts.portletWidth/2
+    var y2 = sinkRenderer.getInletY(conn.sink.port)
+
+    return (
+      <line
+        className={"connection"}
+        style={lineStyle}
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+      />
+    )
+  }
+}
+
+class PatchRenderer extends AbstractRenderer {
   render() {
     var { patch } = this.props
     return (
@@ -169,6 +203,12 @@ class PatchRenderer extends React.Component {
           {patch.nodes.map((node, n) => {
             return (
               <ObjectRenderer key={n} node={node} />
+            )
+          })}
+
+          {patch.connections.map((connection, n) => {
+            return (
+              <ConnectionRenderer key={n} patch={patch} connection={connection} />
             )
           })}
 
