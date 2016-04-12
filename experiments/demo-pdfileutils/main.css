@@ -1,0 +1,13 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: 'Source Sans Pro';
+}
+
+svg text {
+  font-size: 80%;
+}

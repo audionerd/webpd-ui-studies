@@ -32,6 +32,7 @@
     "budo": "8.1.0",
     "immutable": "3.7.6",
     "pd-fileutils": "0.3.5",
+    "ramda": "0.21.0",
     "react": "0.14.8",
     "react-dom": "0.14.8",
     "webpd": "github:sebpiq/WebPd"
