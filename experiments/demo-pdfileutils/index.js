@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import pdfu from 'pd-fileutils'
+import Pd from 'webpd'
 
 class AbstractRenderer extends React.Component {
   opts = {
@@ -20,6 +21,9 @@ class AbstractRenderer extends React.Component {
 class NodeRenderer extends AbstractRenderer {
   get node() {
     return this.props.node
+  }
+  get object() {
+    return this.props.object
   }
 
   // Returns node X in the canvas
@@ -95,7 +99,7 @@ class ObjectRenderer extends NodeRenderer {
     return this.opts.objMinHeight
   }
   getW() {
-    const maxPortlet = Math.max(this.node.inlets, this.node.outlets)
+    const maxPortlet = Math.max(this.object.inlets.length, this.object.outlets.length)
       , textLength = this.getText().length * this.opts.glyphWidth + this.opts.textPadding * 2
 
     return Math.max((maxPortlet-1) * this.opts.objMinWidth, this.opts.objMinWidth, textLength)
@@ -171,8 +175,14 @@ class ConnectionRenderer extends AbstractRenderer {
     const conn = this.props.connection
 
     // HACK
-    const sourceRenderer = new ObjectRenderer({ node: patch.getNode(conn.source.id) })
-    const sinkRenderer = new ObjectRenderer({ node: patch.getNode(conn.sink.id) })
+    const sourceRenderer = new ObjectRenderer({
+      node: patch.patchData.nodes[conn.source.id],
+      object: patch.objects[patch.patchData.nodes[conn.source.id].id]
+    })
+    const sinkRenderer = new ObjectRenderer({
+      node: patch.patchData.nodes[conn.sink.id],
+      object: patch.objects[patch.patchData.nodes[conn.sink.id].id]
+    })
 
     var x1 = sourceRenderer.getOutletX(conn.source.port) + this.opts.portletWidth/2
     var y1 = sourceRenderer.getOutletY(conn.source.port) + this.opts.portletHeight
@@ -200,13 +210,14 @@ class PatchRenderer extends AbstractRenderer {
       <svg xmlns="http://www.w3.org/2000/svg" version="1.1">
         <g>
 
-          {patch.nodes.map((node, n) => {
+          {patch.patchData.nodes.map((node, n) => {
+            const object = patch.objects[node.id]
             return (
-              <ObjectRenderer key={n} node={node} />
+              <ObjectRenderer key={n} node={node} object={object} />
             )
           })}
 
-          {patch.connections.map((connection, n) => {
+          {patch.patchData.connections.map((connection, n) => {
             return (
               <ConnectionRenderer key={n} patch={patch} connection={connection} />
             )
@@ -218,17 +229,28 @@ class PatchRenderer extends AbstractRenderer {
   }
 }
 
-var patch = new pdfu.Patch({nodes: [], connections: []})
-patch.guessPortlets()
+// var patch = new pdfu.Patch({nodes: [], connections: []})
+// patch.guessPortlets()
 
 var containerEl = document.createElement('div')
 document.body.appendChild(containerEl)
-ReactDOM.render(<PatchRenderer patch={patch} />, containerEl)
+// ReactDOM.render(<PatchRenderer patch={patch} />, containerEl)
 
 // async test
 setTimeout(function() {
-  var data = pdfu.parse('#N canvas 778 17 450 300 10;\n#X obj 14 13 loadbang;\n#X obj 14 64 print bla;\n#X connect 0 0 1 0;')
-  var patch = new pdfu.Patch(data)
-  patch.guessPortlets()
+  // var data = pdfu.parse('#N canvas 778 17 450 300 10;\n#X obj 14 13 loadbang;\n#X obj 14 64 print bla;\n#X connect 0 0 1 0;')
+  var data = `
+    #N canvas 609 236 450 300 10;
+    #X obj 14 13 osc~ 440;
+    #X obj 14 39 dac~;
+    #X connect 0 0 1 0;
+  `
+  // var patch = new pdfu.Patch(data)
+  // patch.guessPortlets()
+
+  var patchData = Pd.parsePatch(data)
+  var patch = Pd.loadPatch(patchData)
+  Pd.start()
+
   ReactDOM.render(<PatchRenderer patch={patch} />, containerEl)
 }, 1)
